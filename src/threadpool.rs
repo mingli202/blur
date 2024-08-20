@@ -14,8 +14,8 @@ impl ThreadPool {
 
         let mut handles = Vec::with_capacity(n_workers);
 
-        for i in 0..n_workers {
-            handles.push(Worker::new(i, Arc::clone(&rx)));
+        for _ in 0..n_workers {
+            handles.push(Worker::new(Arc::clone(&rx)));
         }
 
         ThreadPool {
@@ -36,8 +36,6 @@ impl Drop for ThreadPool {
         drop(self.tx.take());
 
         for worker in &mut self.threads {
-            println!("Shutting down worker {}", worker.id);
-
             if let Some(handle) = worker.thread.take() {
                 handle.join().unwrap();
             }
@@ -46,12 +44,11 @@ impl Drop for ThreadPool {
 }
 
 struct Worker {
-    id: usize,
     thread: Option<thread::JoinHandle<()>>,
 }
 
 impl Worker {
-    fn new(id: usize, rx: Arc<Mutex<Receiver<Job>>>) -> Self {
+    fn new(rx: Arc<Mutex<Receiver<Job>>>) -> Self {
         let handle = thread::spawn(move || loop {
             let msg = rx.lock().unwrap().recv();
 
@@ -60,14 +57,12 @@ impl Worker {
                     job();
                 }
                 Err(_) => {
-                    println!("Worker {} disconnected", id);
                     break;
                 }
             }
         });
 
         Worker {
-            id,
             thread: Some(handle),
         }
     }

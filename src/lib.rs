@@ -4,21 +4,82 @@ use std::env;
 use std::sync::{mpsc, Arc};
 
 mod threadpool;
+use std::path::PathBuf;
 use threadpool::*;
 
-pub fn get_fnames(mut args: env::Args) -> (String, String) {
-    args.next();
+pub struct Opts {
+    pub radius: u8,
+    pub sigma: f64,
+    pub original: PathBuf,
+    pub blurred: PathBuf,
+}
 
-    let original = match args.next() {
-        Some(p) => p,
-        None => "assets/bg.jpg".to_string(),
-    };
+impl Opts {
+    pub fn new(mut cli_opts: env::Args) -> Opts {
+        let mut radius = 10;
+        let mut sigma = 10.0;
+        let mut original: Option<PathBuf> = None;
+        let mut blurred: Option<PathBuf> = None;
 
-    let blurred = match args.next() {
-        Some(p) => p,
-        None => "assets/blurred.jpg".to_string(),
-    };
-    (original, blurred)
+        if cli_opts.len() > 7 {
+            panic!("Too many arguments");
+        }
+
+        cli_opts.next();
+
+        while let Some(arg) = cli_opts.next() {
+            match arg.as_str() {
+                "--radius" | "-r" => {
+                    radius = cli_opts
+                        .next()
+                        .expect("Expected a value after --radius")
+                        .parse::<u8>()
+                        .expect("Expected a number after --radius");
+                }
+                "--sigma" | "-s" => {
+                    sigma = cli_opts
+                        .next()
+                        .expect("Expected a value after --sigma")
+                        .parse::<f64>()
+                        .expect("Expected a number after --sigma");
+                }
+                _ => match original {
+                    Some(_) => blurred = Some(PathBuf::from(arg)),
+                    None => original = Some(PathBuf::from(arg)),
+                },
+            }
+        }
+
+        if original.is_none() {
+            panic!("Expected an original image");
+        }
+
+        if blurred.is_none() {
+            let mut blurred_path: PathBuf = original.clone().unwrap();
+
+            let blurred_fname = format!(
+                "blurred_{}x{}.{}",
+                radius,
+                sigma,
+                blurred_path
+                    .extension()
+                    .expect("Expected an extension")
+                    .to_str()
+                    .expect("Expected a string")
+            );
+
+            blurred_path.set_file_name(blurred_fname);
+
+            blurred = Some(blurred_path);
+        }
+
+        Opts {
+            radius,
+            sigma,
+            original: original.unwrap(),
+            blurred: blurred.unwrap(),
+        }
+    }
 }
 
 fn gaussian(x: i32, y: i32, sigma: f64) -> f64 {
