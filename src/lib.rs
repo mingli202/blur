@@ -58,7 +58,12 @@ impl Opts {
             let mut blurred_path: PathBuf = original.clone().unwrap();
 
             let blurred_fname = format!(
-                "blurred_{}x{}.{}",
+                "{}_blurred_{}x{}.{}",
+                blurred_path
+                    .file_stem()
+                    .expect("Expected a filename")
+                    .to_str()
+                    .expect("Expected a string"),
                 radius,
                 sigma,
                 blurred_path
