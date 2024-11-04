@@ -1,5 +1,5 @@
 [package]
-name = "blur"
+name = "vincent_blur"
 version = "0.1.0"
 edition = "2021"
 
