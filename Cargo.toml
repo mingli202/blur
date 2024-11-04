@@ -2,7 +2,7 @@
 name = "vincent_blur"
 license = "MIT OR Apache-2.0"
 description = "My own implementaion of guassian blur using threads"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 authors = ["mingli202"]
 repository = "https://github.com/mingli202/blur"
