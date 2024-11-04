@@ -1,5 +1,7 @@
 [package]
 name = "vincent_blur"
+license = "MIT OR Apache-2.0"
+description = "My own implementaion of guassian blur using threads"
 version = "0.1.0"
 edition = "2021"
 

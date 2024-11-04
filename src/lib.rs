@@ -32,6 +32,11 @@ impl Opts {
     ///     blurred: blurred_path,
     /// } = Opts::new(env::args());
     /// ```
+    ///
+    /// # Panics
+    /// - If there are too many arguments
+    /// - If the cli options are not followed by a value
+    /// - If the source file is not specified
     pub fn new(mut cli_opts: env::Args) -> Result<Opts, String> {
         let mut radius = 10;
         let mut sigma = 10.0;
