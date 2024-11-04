@@ -307,7 +307,7 @@ pub fn blur_async(
     img_buf
 }
 
-/// Blurs image one pixel at a time
+/// Blurs image one pixel at a time. It is the same as blur_async with 1 thread.
 ///
 /// # Examples
 /// ```
@@ -341,6 +341,13 @@ pub fn blur_sync(radius: u8, sigma: f64, original_img: RgbImage) -> ImageBuffer<
         original_img.height()
     );
 
+    let m_size = (radius as u128 * 2 + 1).pow(2);
+
+    println!(
+        "Number of caculations: {}",
+        original_img.width() as u128 * original_img.height() as u128 * m_size
+    );
+
     let m = get_gaussian_matrix(radius, sigma);
 
     let mut img_buf = ImageBuffer::new(original_img.width(), original_img.height());
@@ -348,6 +355,8 @@ pub fn blur_sync(radius: u8, sigma: f64, original_img: RgbImage) -> ImageBuffer<
     for (x, y, pixel) in img_buf.enumerate_pixels_mut() {
         *pixel = calculate_new_pixel(x as i32, y as i32, &m, &original_img);
     }
+
+    println!("Done!");
 
     img_buf
 }
