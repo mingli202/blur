@@ -53,25 +53,53 @@ impl Opts {
         while let Some(arg) = cli_opts.next() {
             match arg.as_str() {
                 "--radius" | "-r" => {
-                    radius = cli_opts
-                        .next()
-                        .expect("Expected a value after --radius|-r")
-                        .parse::<u8>()
-                        .expect("Expected a number after --radius|-r");
+                    radius = match cli_opts.next() {
+                        Some(s) => match s.parse::<u8>() {
+                            Ok(t) if t > 0 => t,
+                            _ => {
+                                return Err("Expected a number greater than 0 after --radius|-r"
+                                    .to_string())
+                            }
+                        },
+                        None => {
+                            return Err(
+                                "Expected a number greater than 0 after --radius|-r".to_string()
+                            )
+                        }
+                    };
                 }
                 "--sigma" | "-s" => {
-                    sigma = cli_opts
-                        .next()
-                        .expect("Expected a value after --sigma|-s")
-                        .parse::<f64>()
-                        .expect("Expected a float after --sigma|-s");
+                    sigma = match cli_opts.next() {
+                        Some(s) => match s.parse::<f64>() {
+                            Ok(t) if t > 0.0 => t,
+                            _ => {
+                                return Err(
+                                    "Expected a float greater than 0 after --sigma|-s".to_string()
+                                )
+                            }
+                        },
+                        None => {
+                            return Err(
+                                "Expected a float greater than 0 after --sigma|-s".to_string()
+                            )
+                        }
+                    };
                 }
                 "--threads" | "-t" => {
-                    n_threads = cli_opts
-                        .next()
-                        .expect("Expected a value after --threads|-t")
-                        .parse::<usize>()
-                        .expect("Expected a number after --threads|-t");
+                    n_threads = match cli_opts.next() {
+                        Some(s) => match s.parse::<usize>() {
+                            Ok(t) if t > 0 => t,
+                            _ => {
+                                return Err("Expected a number greater than 0 after --threads|-t"
+                                    .to_string())
+                            }
+                        },
+                        None => {
+                            return Err(
+                                "Expected a number greater than 0 after --threads|-t".to_string()
+                            )
+                        }
+                    };
                 }
                 "--help" | "-h" => {
                     let help = [
@@ -96,27 +124,23 @@ impl Opts {
         }
 
         if original.is_none() {
-            panic!("Expected an original image");
+            return Err("Expected an original image".to_string());
         }
 
         if blurred.is_none() {
             let mut blurred_path: PathBuf = original.clone().unwrap();
 
-            let blurred_fname = format!(
-                "{}_blurred_{}x{}.{}",
-                blurred_path
-                    .file_stem()
-                    .expect("Expected a filename")
-                    .to_str()
-                    .expect("Expected a string"),
-                radius,
-                sigma,
-                blurred_path
-                    .extension()
-                    .expect("Expected an extension")
-                    .to_str()
-                    .expect("Expected a string")
-            );
+            let fname = match blurred_path.file_stem() {
+                Some(s) => s.to_str().unwrap(),
+                _ => return Err("Expected a filename".to_string()),
+            };
+
+            let ext = match blurred_path.extension() {
+                Some(e) => e.to_str().unwrap(),
+                _ => return Err("expected an extension".to_string()),
+            };
+
+            let blurred_fname = format!("{}_blurred_{}x{}.{}", fname, radius, sigma, ext);
 
             blurred_path.set_file_name(blurred_fname);
 
