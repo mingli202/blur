@@ -7,22 +7,40 @@ mod threadpool;
 use std::path::PathBuf;
 use threadpool::*;
 
+/// Struct for CLI options
 pub struct Opts {
     pub radius: u8,
     pub sigma: f64,
     pub original: PathBuf,
     pub blurred: PathBuf,
+    pub n_threads: usize,
 }
 
 impl Opts {
-    pub fn new(mut cli_opts: env::Args) -> Opts {
+    /// Constructs a new Opts from CLI options
+    ///
+    /// # Example
+    /// ```
+    /// use std::env;
+    /// use blur::Opts;
+    ///
+    /// let Opts {
+    ///     radius,
+    ///     sigma,
+    ///     n_threads,
+    ///     original: original_path,
+    ///     blurred: blurred_path,
+    /// } = Opts::new(env::args());
+    /// ```
+    pub fn new(mut cli_opts: env::Args) -> Result<Opts, String> {
         let mut radius = 10;
         let mut sigma = 10.0;
+        let mut n_threads = 10;
         let mut original: Option<PathBuf> = None;
         let mut blurred: Option<PathBuf> = None;
 
-        if cli_opts.len() > 7 {
-            panic!("Too many arguments");
+        if cli_opts.len() > 9 {
+            return Err("Too many arguments".to_string());
         }
 
         cli_opts.next();
@@ -32,16 +50,38 @@ impl Opts {
                 "--radius" | "-r" => {
                     radius = cli_opts
                         .next()
-                        .expect("Expected a value after --radius")
+                        .expect("Expected a value after --radius|-r")
                         .parse::<u8>()
-                        .expect("Expected a number after --radius");
+                        .expect("Expected a number after --radius|-r");
                 }
                 "--sigma" | "-s" => {
                     sigma = cli_opts
                         .next()
-                        .expect("Expected a value after --sigma")
+                        .expect("Expected a value after --sigma|-s")
                         .parse::<f64>()
-                        .expect("Expected a number after --sigma");
+                        .expect("Expected a float after --sigma|-s");
+                }
+                "--threads" | "-t" => {
+                    n_threads = cli_opts
+                        .next()
+                        .expect("Expected a value after --threads|-t")
+                        .parse::<usize>()
+                        .expect("Expected a number after --threads|-t");
+                }
+                "--help" | "-h" => {
+                    let help = [
+                        "Usage: blur [--radius|-r <radius>] [--sigma|-s <sigma>] [--threads|-t <n_threads>] <source> [<destination>] [--help|-h]\n",
+                        "   <source>            Path to original image.",
+                        "   <destination>       Path of the blurred image. Default is",
+                        "                       <source>_blurred_<radius>x<sigma>.\n",
+                        "   -r, --radius        Blur radius. Default is 10px.",
+                        "   -s, --sigma         Gaussian blur standard deviation. Default is 10.",
+                        "   -t, --threads       Number of thread workers. Default is 10.",
+                        "   -h, --help          Prints this help."
+                    ].join("\n");
+
+                    println!("{help}");
+                    std::process::exit(1);
                 }
                 _ => match original {
                     Some(_) => blurred = Some(PathBuf::from(arg)),
@@ -78,12 +118,13 @@ impl Opts {
             blurred = Some(blurred_path);
         }
 
-        Opts {
+        Ok(Opts {
             radius,
             sigma,
+            n_threads,
             original: original.unwrap(),
             blurred: blurred.unwrap(),
-        }
+        })
     }
 }
 
@@ -149,7 +190,39 @@ fn calculate_new_pixel(x: i32, y: i32, matrix: &Grid<f64>, original_img: &RgbIma
     Rgb::from([r as u8, g as u8, b as u8])
 }
 
-pub fn blur_async(radius: u8, sigma: f64, original_img: RgbImage) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+/// Blurs image using a thread pool
+///
+/// # Examples
+/// ```
+/// use blur::{Opts, blur_async};
+///
+/// use std::env;
+/// use std::error::Error;
+///
+/// fn main() -> Result<(), Box<dyn Error>> {
+///     let Opts {
+///         radius,
+///         sigma,
+///         original: original_path,
+///         blurred: blurred_path,
+///         n_threads,
+///     } = Opts::new(env::args());
+///
+///     let original_img = image::open(original_path)?.to_rgb8();
+///
+///     let img_buf = blur_async(radius, sigma, n_threads, original_img);
+///
+///     img_buf.save(blurred_path)?;
+///
+///     Ok(())
+/// }
+/// ```
+pub fn blur_async(
+    radius: u8,
+    sigma: f64,
+    n_threads: usize,
+    original_img: RgbImage,
+) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
     let width = original_img.width();
     let height = original_img.height();
 
@@ -165,7 +238,6 @@ pub fn blur_async(radius: u8, sigma: f64, original_img: RgbImage) -> ImageBuffer
 
     let (tx, rx) = mpsc::channel();
     let img = Arc::new(original_img);
-    let n_threads = 10;
 
     let pool = ThreadPool::new(n_threads);
 
@@ -206,7 +278,34 @@ pub fn blur_async(radius: u8, sigma: f64, original_img: RgbImage) -> ImageBuffer
     img_buf
 }
 
-pub fn blur(radius: u8, sigma: f64, original_img: RgbImage) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
+/// Blurs image one pixel at a time
+///
+/// # Examples
+/// ```
+/// use blur::{Opts, blur_sync};
+///
+/// use std::env;
+/// use std::error::Error;
+///
+/// fn main() -> Result<(), Box<dyn Error>> {
+///     let Opts {
+///         radius,
+///         sigma,
+///         original: original_path,
+///         blurred: blurred_path,
+///         n_threads,
+///     } = Opts::new(env::args());
+///
+///     let original_img = image::open(original_path)?.to_rgb8();
+///
+///     let img_buf = blur_sync(radius, sigma, original_img);
+///
+///     img_buf.save(blurred_path)?;
+///
+///     Ok(())
+/// }
+/// ```
+pub fn blur_sync(radius: u8, sigma: f64, original_img: RgbImage) -> ImageBuffer<Rgb<u8>, Vec<u8>> {
     println!(
         "Image dimensions: {}x{}",
         original_img.width(),

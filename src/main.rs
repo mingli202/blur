@@ -9,11 +9,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         sigma,
         original: original_path,
         blurred: blurred_path,
-    } = Opts::new(env::args());
+        n_threads,
+    } = Opts::new(env::args())?;
 
     let original_img = image::open(original_path)?.to_rgb8();
 
-    let img_buf = blur_async(radius, sigma, original_img);
+    let img_buf = blur_async(radius, sigma, n_threads, original_img);
 
     img_buf.save(blurred_path)?;
 

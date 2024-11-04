@@ -10,7 +10,7 @@ fn small_radius() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let img_blurred = blur(3, 10.0, img);
+        let img_blurred = blur_sync(3, 10.0, img);
         img_blurred.save("assets/blurred_test_1.jpg").unwrap();
 
         tx.send(()).unwrap();
@@ -26,7 +26,7 @@ fn big_radius() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let img_blurred = blur(10, 10.0, img);
+        let img_blurred = blur_sync(10, 10.0, img);
         img_blurred.save("assets/blurred_test_2.jpg").unwrap();
 
         tx.send(()).unwrap();
@@ -45,7 +45,7 @@ fn async_small_radius() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let img_blurred = blur_async(3, 10.0, img);
+        let img_blurred = blur_async(3, 10.0, 10, img);
 
         img_blurred.save("assets/blurred_test_3.jpg").unwrap();
 
@@ -62,7 +62,7 @@ fn async_big_radius() {
     let (tx, rx) = mpsc::channel();
 
     thread::spawn(move || {
-        let img_blurred = blur_async(10, 10.0, img);
+        let img_blurred = blur_async(10, 10.0, 10, img);
 
         img_blurred.save("assets/blurred_test_3.jpg").unwrap();
 
