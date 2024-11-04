@@ -1,7 +1,7 @@
-use blur::*;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
+use vincent_blur::*;
 
 #[test]
 fn small_radius() {

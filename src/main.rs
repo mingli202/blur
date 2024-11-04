@@ -1,4 +1,4 @@
-use blur::*;
+use vincent_blur::*;
 
 use std::env;
 use std::error::Error;
